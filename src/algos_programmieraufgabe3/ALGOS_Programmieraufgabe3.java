@@ -1,57 +1,74 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
- */
 package algos_programmieraufgabe3;
 
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-/**
- *
- * @author User
- */
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class ALGOS_Programmieraufgabe3 {
 
-    /**
-     * @param args the command line arguments
-     */
     public static void main(String[] args) {
-        try{
-        Path p =  Paths.get("verkehrsnetz.txt");
-        List<String> lines = new ArrayList<String>();
-        Files.lines(p).forEach(line-> lines.add(line));
         Graph graph = new Graph();
-        for(String line : lines){
-            String[] linePart = line.split(":");
-            String lineName = linePart[0];
-            String stops = linePart[1].trim().substring(1);
-            //System.out.println(stops);
-            List<String> stopsList =  Arrays.asList(stops.split("\""));
-            stopsList = stopsList.stream().map(String::trim).collect(Collectors.toList());
-            for(int i=0;i< stopsList.size();i++){
-                
-                Node a = new Node(stopsList.getFirst());
-                stopsList.removeFirst();
-                int weight = Integer.parseInt(stopsList.getFirst());
-                stopsList.removeFirst();
-                Node b = new Node(stopsList.getFirst());
-                graph.addNode(a);
-                graph.addNode(b);
-                System.out.println("adde node "+ a.getStationName() +","+b.getStationName()+" that are connected with weight " + weight);
-                graph.addEdge(a, new Edge(b,lineName,weight));
-                graph.addEdge(b, new Edge(a,lineName,weight));
+        String filepath = "verkehrsnetz.txt";
+
+        Pattern stationPattern = Pattern.compile("\"([^\"]+)\"\\s*(\\d+)?");
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filepath))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+
+                String[] parts = line.split(":", 2);
+                String lineName = parts[0].trim();
+                String remainder = parts[1].trim();
+
+                Matcher matcher = stationPattern.matcher(remainder);
+
+                String currentStation = null;
+                int currentWeight = -1;
+
+                while (matcher.find()) {
+                    String stationName = matcher.group(1);
+
+                    if (currentStation != null && currentWeight != -1) {
+                        Node vonKnoten = new Node(currentStation);
+                        Node zuKnoten = new Node(stationName);
+
+                        Edge kante = new Edge(zuKnoten, lineName, currentWeight);
+
+                        graph.addNode(vonKnoten);
+                        graph.addNode(zuKnoten);
+
+                        graph.addEdge(vonKnoten, kante);
+
+                        Edge rueckKante = new Edge(vonKnoten, lineName, currentWeight);
+                        graph.addEdge(zuKnoten, rueckKante);
+                    }
+
+                    currentStation = stationName;
+                    String weightStr = matcher.group(2);
+                    currentWeight = (weightStr != null) ? Integer.parseInt(weightStr) : -1;
+                }
             }
-            
-        }
-        } catch(Exception e){
-            System.out.println("Error: " + e.getMessage());
+
+            System.out.println("Verkehrsnetz erfolgreich eingelesen.");
+
+            Scanner scanner = new Scanner(System.in);
+
+            System.out.print("Start-Haltestelle eingeben: ");
+            String start = scanner.nextLine();
+
+            System.out.print("Ziel-Haltestelle eingeben: ");
+            String ziel = scanner.nextLine();
+
+            DijkstraPathFinder.findAndPrintShortestPath(graph, start, ziel);
+
+            scanner.close();
+
+        } catch (Exception e) {
+            System.out.println("Fehler beim Einlesen oder Verarbeiten der Datei: " + e.getMessage());
+            e.printStackTrace();
         }
     }
-    
 }

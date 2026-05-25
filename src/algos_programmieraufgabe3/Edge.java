@@ -19,5 +19,9 @@ public class Edge {
         this.line = line;
         this.weight = weight;
     }
+
+    public Node getDestination() { return destination; }
+    public String getLine() { return line; }
+    public int getWeight() { return weight; }
     
 }
